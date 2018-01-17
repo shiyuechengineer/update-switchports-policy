@@ -196,12 +196,17 @@ def main(argv):
                 print('Found %d matched MAC addresses on switch %s' % (len(matches), switch['serial']))
                 tally_ports += len(matched_ports.keys())
                 for port in matched_ports.keys():
-                    switchport = get_port_details(API_KEY, switch['serial'], port)
-                    if switchport['accessPolicyNumber'] == new_policy:
-                        continue
-                    else:
-                        switchport['accessPolicyNumber'] = new_policy
-                        update_switch_port(API_KEY, switch['serial'], switchport['number'], json.dumps(switchport))
+                    if port.isdigit():
+                        # Only continue if this port is an actual number
+                        # i.e., not an an aggregated port like "AGGR/0"
+                        switchport = get_port_details(API_KEY, switch['serial'], port)
+                        if switchport['accessPolicyNumber'] == new_policy:
+                            continue
+                        elif switchport['type'] == 'access':
+                            # Only update the access policy for access ports
+                            # otherwise, moot point and undesired for trunks
+                            switchport['accessPolicyNumber'] = new_policy
+                            update_switch_port(API_KEY, switch['serial'], switchport['number'], json.dumps(switchport))
                 print('Configured %d matched ports on switch %s' % (len(matched_ports), switch['serial']))
         print('Configured %d total ports matching search criteria.' % (tally_ports))
     elif search_policy is not None:
